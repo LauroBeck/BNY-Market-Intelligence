@@ -10,7 +10,6 @@ class PortfolioOptimizer:
         print("      2026 STRATEGIC ASSET ALLOCATION (70/20/10)      ")
         print("="*60)
         
-        # Define the Strategy
         allocation_plan = {
             "Operational Liquidity (Cash)": 0.70,
             "Growth (S&P 500 InfoTech)": 0.20,
@@ -28,12 +27,13 @@ class PortfolioOptimizer:
         print(f"TOTAL CAPITAL TO DEPLOY: ${total_capital:,.2f}")
         print("="*60 + "\n")
         
+        cash_amount = total_capital * 0.70
+        sweep_amount = total_capital * 0.30
+        
         print(">>> ARCHITECT'S RECOMMENDATION:")
-        jpm_transfer = (total_capital * 0.30)
-        print(f" [!] Sweep ${jpm_transfer:,.2f} from JPM Chase Corporate to Investment Sub-Ledger.")
-        print(" [!] Maintain remaining ${total_capital * 0.70:,.2f} for Nasdaq Signal Execution.\n")
+        print(f" [!] Sweep ${sweep_amount:,.2f} from JPM to Investment Sub-Ledger.")
+        print(f" [!] Maintain ${cash_amount:,.2f} for Nasdaq Signal Execution.\n")
 
 if __name__ == "__main__":
-    # Optimizing your ,548,607.93
     optimizer = PortfolioOptimizer()
     optimizer.optimize_allocation(8548607.93)
