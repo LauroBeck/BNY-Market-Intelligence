@@ -1,30 +1,37 @@
-from .trade_validator import validate_trade_liquidity
-from .audit_logger import log_trade_decision
-from .account_engine import BNYAccountEngine
+from bny_test_project.src.smart_router import SmartOrderRouter
+from bny_test_project.src.trade_validator import TradeValidator
+import time
 
-def process_market_signal(symbol, signal_type, trade_amount):
-    print(f"\n>>> MARKET SIGNAL DETECTED: [{symbol}] - {signal_type}")
+def execute_market_intelligence_loop():
+    router = SmartOrderRouter()
+    validator = TradeValidator()
     
-    # Quick balance fetch for logging purposes
-    engine = BNYAccountEngine(simulate=False)
-    bal_resp = engine.get_balances("ACT-778899", "LOG_TOKEN")
-    current_bal = float(bal_resp['data']['Data']['Balance'][0]['Amount']['Amount'])
+    # Simulated Nasdaq Signal (e.g., ORCL Breakout)
+    signals = [
+        {"ticker": "ORCL", "action": "BUY", "amount": 1500000.00},
+        {"ticker": "IBM", "action": "BUY", "amount": 3000000.00}
+    ]
 
-    if "STRONG_BULL" in signal_type:
-        is_approved, reason = validate_trade_liquidity(trade_amount)
-        status = "AUTHORIZED" if is_approved else "ABORTED"
+    for signal in signals:
+        print(f"\n>>> SIGNAL DETECTED: {signal['action']} {signal['ticker']} for ${signal['amount']:,.2f}")
         
-        # Log the decision
-        log_trade_decision(symbol, trade_amount, current_bal, status, reason)
+        # 1. Ask Router for the best bank
+        provider = router.select_best_provider(signal['amount'])
         
-        if is_approved:
-            print(f"🚀 EXECUTION AUTHORIZED: Placing trade for {symbol}.")
+        if provider:
+            print(f"[SOR] Selected Provider: {provider['bank']}")
+            
+            # 2. Pass to Validator (using the selected bank's balance)
+            is_valid, msg = validator.validate_trade(signal['amount'], provider['balance'])
+            
+            if is_valid:
+                print(f"🚀 EXECUTION AUTHORIZED: Funding via {provider['bank']}")
+            else:
+                print(f"⚠️ EXECUTION DENIED: {msg}")
         else:
-            print(f"🛑 TRADE ABORTED: {reason}")
-    else:
-        print(f"Holding position for {symbol}.")
+            print(f"🛑 CRITICAL: No single bank can safely fund ${signal['amount']:,.2f}")
+        
+        time.sleep(1)
 
 if __name__ == "__main__":
-    process_market_signal("ORCL", "STRONG_BULL", 50000.00)
-    process_market_signal("IBM", "STRONG_BULL", 2000000.00)
-    print("\n[SYSTEM] Decisions archived to reports/trade_journal_2026.csv")
+    execute_market_intelligence_loop()
