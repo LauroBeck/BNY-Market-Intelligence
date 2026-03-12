@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+venv/
+reports/*.csv
+reports/*.json
+certs/*.pem
+certs/*.key
+.DS_Store
