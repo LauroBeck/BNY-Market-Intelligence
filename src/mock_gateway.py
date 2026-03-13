@@ -1,40 +1,38 @@
-from fastapi import FastAPI, Header
+from fastapi import FastAPI, Header, HTTPException
 import random
-from datetime import datetime
 
-app = FastAPI()
+app = FastAPI(title="Open Banking AISP v3.1 Multi-Bank Gateway")
 
-# 2026 Asset Class Projections
-ASSET_PROJECTIONS = {
-    "SP500_IT": {"growth": 0.125, "volatility": "High", "desc": "S&P 500 InfoTech ETF"},
-    "BOND_10Y": {"growth": 0.042, "volatility": "Low", "desc": "10Y Treasury Bond"},
-    "TECH_BOND": {"growth": 0.068, "volatility": "Med", "desc": "Corporate Tech Bond"}
+BANKS = {
+    "JPM": {"Name": "JPMorgan Chase Corporate", "BIC": "CHASUS33"},
+    "BNY": {"Name": "BNY Mellon Main", "BIC": "BONYUS33"},
+    "WFB": {"Name": "Wells Fargo Treasury", "BIC": "WELSUS66"}
 }
 
-BANK_DATA = {
-    "BNY": {"balance": 2500000.00, "name": "BNY Mellon Main"},
-    "JPM": {"balance": 4850000.00, "name": "JPM Chase Corporate"},
-    "WFB": {"balance": 1200000.00, "name": "Wells Fargo Treasury"}
+ACCOUNTS = {
+    "ACC-JPM-001": {"Nickname": "Main Operating", "Balance": 4850000.00, "Bank": "JPM"},
+    "ACC-BNY-002": {"Nickname": "Alpha Treasury", "Balance": 2500000.00, "Bank": "BNY"},
+    "ACC-WFB-003": {"Nickname": "Beta Liquidity", "Balance": 1200000.00, "Bank": "WFB"}
 }
 
-@app.get("/open-banking/v3.1/aisp/accounts/{account_id}/balances")
-async def get_multi_bank_balance(account_id: str, x_fapi_financial_id: str = Header(None)):
-    bank_key = x_fapi_financial_id if x_fapi_financial_id in BANK_DATA else "BNY"
-    current_bal = BANK_DATA[bank_key]["balance"] + random.uniform(-1000, 1000)
-    return {
-        "Data": {"Balance": [{"Amount": {"Amount": f"{current_bal:.2f}", "Currency": "USD"}}]},
-        "Meta": {"Bank": BANK_DATA[bank_key]["name"]}
-    }
-
-@app.get("/enterprise/v1/projections")
-async def get_market_projections():
-    return {
-        "timestamp": datetime.utcnow().isoformat(),
-        "assets": {k: {**v, "expected_yield": v["growth"] + random.uniform(-0.01, 0.01)} 
-                   for k, v in ASSET_PROJECTIONS.items()}
-    }
+@app.get("/open-banking/v3.1/aisp/accounts")
+async def get_accounts(x_fapi_financial_id: str = Header(None)):
+    bank_id = x_fapi_financial_id
+    filtered = []
+    
+    for acc_id, data in ACCOUNTS.items():
+        if not bank_id or data["Bank"] == bank_id:
+            bank_info = BANKS[data["Bank"]]
+            filtered.append({
+                "AccountId": acc_id,
+                "Nickname": data["Nickname"],
+                "Servicer": {
+                    "SchemeName": "UK.OBIE.BICFI",
+                    "Identification": bank_info["BIC"]
+                }
+            })
+    return {"Data": {"Account": filtered}}
 
 if __name__ == "__main__":
     import uvicorn
-    # Using uvicorn.run directly inside the script
     uvicorn.run(app, host="0.0.0.0", port=8000)
